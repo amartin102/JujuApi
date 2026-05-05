@@ -1,0 +1,6 @@
+@JujuApi_HostAddress = http://localhost:5121
+
+GET {{JujuApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
