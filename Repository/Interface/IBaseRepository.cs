@@ -16,9 +16,7 @@ namespace Repository.Interface
 
         Task<bool> DeleteAllAsync(int id);
 
-        Task<IQueryable<TEntity>> GetAllAsync();
-
-        //Task<TEntity> GetByIdAsync(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includeFunc = null);
+        Task<IQueryable<TEntity>> GetAllAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>>? includeFunc = null);
 
         Task<TEntity?> GetByIdAsync(int id);
 

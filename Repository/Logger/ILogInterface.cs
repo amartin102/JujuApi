@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Repository.Loggin
+namespace Repository.Logger
 {
     public interface ILogInterface
     {
-        Task LogAsync(string level, string message, Exception? ex = null, object? properties = null);
+        Task LogAsync(string level, string messageTemplate, string message, Exception? ex = null, object? properties = null);
     }
 }
