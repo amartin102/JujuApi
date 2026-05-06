@@ -1,6 +1,8 @@
-﻿using Application.Common.DateHelper;
+﻿using Application.Common;
+using Application.Common.DateHelper;
 using Application.Common.GenericResponse;
 using Application.Common.MapExceptionToStatusCode;
+using Application.Common.Messages;
 using Application.Dtos.Customer;
 using Application.Dtos.Post;
 using Application.Services.Interface;
@@ -24,7 +26,7 @@ namespace Application.Services
             _mapper = mapper;
             _logService = logService;
             _postService = postService; 
-        }    
+        }
 
         public async Task<GenericResponse<GetCustomerDto>> Create(CreateCustomerDto customerDto)
         {
@@ -34,11 +36,11 @@ namespace Application.Services
 
                 var validateUser = await _customerRepository.GetByName(customerDto.Name.Trim());
 
-                if(validateUser != null)
+                if (validateUser != null)
                 {
                     response.Success = false;
-                    response.Message = "Customer with the same name already exists.";
-                    response.StatusCode = 409;
+                    response.Message = ErrorMessages.AlreadyExists("Customer", "nombre");
+                    response.StatusCode = (int)HttpStatusCode.Conflict;
                     return response;
                 }
 
@@ -51,7 +53,8 @@ namespace Application.Services
 
                 response.Data = _mapper.Map<GetCustomerDto>(created);
                 response.Success = true;
-                response.StatusCode = 201;
+                response.StatusCode = (int)HttpStatusCode.Created;
+                response.Message = ErrorMessages.Created("Customer");
 
                 return response;
             }
@@ -62,11 +65,10 @@ namespace Application.Services
                 return new GenericResponse<GetCustomerDto>
                 {
                     Success = false,
-                    Message = $"Error al crear el cliente: {ex.InnerException?.Message ?? ex.Message}",
+                    Message = ErrorMessages.ErrorWithDetails("crear", "Customer", ex),
                     StatusCode = MapExceptionStatusCode.GetStatusCode(ex)
                 };
             }
-
         }
 
         public async Task<GenericResponse<bool>> Delete(int id)
@@ -75,47 +77,64 @@ namespace Application.Services
             {
                 var response = new GenericResponse<bool>();
 
+                //Validar que exista el id
+                var exists = await _customerRepository.GetById(id);
+
+                if (exists == null)
+                {
+                    response.Success = false;
+                    response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.Message = ErrorMessages.NotFound("Customer", id);
+                    return response;
+                }
+
                 var deletePostsResult = await _postService.DeleteAll(id);
 
                 if (!deletePostsResult.Success)
                 {
-                    await _logService.LogAsync("Warning", $"DeleteAll posts no realizado: CustomerId={id} no encontrado o sin posts para eliminar", null, null);
+                    await _logService.LogAsync("Warning",
+                        $"DeleteAll posts no realizado: CustomerId={id}", null, null);
 
-                    response.StatusCode = 404;
-                    response.Message = $"Customer con id={id} no encontrado o no eliminado.";
+                    response.Success = false;
+                    response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.Message = ErrorMessages.DeleteFailedByParent("Posts", "Customer", id);
+                    return response;
                 }
-                else {
-                    var deleted = await _customerRepository.Delete(id);
-                    response.Data = deleted;
-                    response.Success = deleted;
 
-                    if (deleted)
-                    {
-                        response.StatusCode = 204;
-                        response.Message = "Eliminación realizada correctamente.";
-                    }
-                    else
-                    {
-                        await _logService.LogAsync("Warning", $"Delete no realizado: CustomerId={id} no encontrado o no eliminado", null, null);
-                        response.StatusCode = 404;
-                        response.Message = $"Customer con id={id} no encontrado o no eliminado.";
-                    }
-                }               
+                var deleted = await _customerRepository.Delete(id);
 
-                return await Task.FromResult(response);
+                response.Data = deleted;
+                response.Success = deleted;
+
+                if (deleted)
+                {
+                    response.StatusCode = (int)HttpStatusCode.NoContent;
+                    response.Message = ErrorMessages.Deleted("Customer");
+                }
+                else
+                {
+                    await _logService.LogAsync("Warning",
+                        $"Delete no realizado: CustomerId={id}", null, null);
+
+                    response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.Message = ErrorMessages.DeleteFailed("Customer", id);
+                }
+
+                return response;
             }
             catch (Exception ex)
             {
-                await _logService.LogAsync("Error", $"ServiceException en Delete Customer id={id}", ex.Message, ex);
+                await _logService.LogAsync("Error",
+                    $"ServiceException en Delete Customer id={id}", ex.Message, ex);
+
                 return new GenericResponse<bool>
                 {
                     Success = false,
-                    Message = $"Error al eliminar el customer con id: {id}. Detalles: {ex.InnerException?.Message ?? ex.Message}",
+                    Message = ErrorMessages.ErrorWithDetails("eliminar", "Customer", ex),
                     Data = false,
                     StatusCode = MapExceptionStatusCode.GetStatusCode(ex)
                 };
             }
-
         }
 
         public async Task<GenericResponse<IQueryable<GetCustomerDto>>> GetAll()
@@ -124,19 +143,22 @@ namespace Application.Services
             {
                 var response = new GenericResponse<IQueryable<GetCustomerDto>>();
                 var customers = await _customerRepository.GetAll();
+
                 response.Data = customers.Select(c => _mapper.Map<GetCustomerDto>(c)).AsQueryable();
                 response.Success = true;
-                response.StatusCode = 200;
+                response.StatusCode = (int)HttpStatusCode.OK;
+                response.Message = ErrorMessages.Success("obtener", "Customers");
 
-                return await Task.FromResult(response);
+                return response;
             }
             catch (Exception ex)
             {
                 await _logService.LogAsync("Error", "ServiceException en GetAll", ex.Message, ex);
+
                 return new GenericResponse<IQueryable<GetCustomerDto>>
                 {
                     Success = false,
-                    Message = $"Error al obtener customers: {ex.InnerException?.Message ?? ex.Message}",
+                    Message = ErrorMessages.ErrorWithDetails("obtener", "Customers", ex),
                     Data = Enumerable.Empty<GetCustomerDto>().AsQueryable(),
                     StatusCode = MapExceptionStatusCode.GetStatusCode(ex)
                 };
@@ -149,76 +171,86 @@ namespace Application.Services
             {
                 var response = new GenericResponse<GetCustomerDto?>();
                 var customer = await _customerRepository.GetById(id);
+
                 response.Data = customer != null ? _mapper.Map<GetCustomerDto>(customer) : null;
                 response.Success = customer != null;
-                response.Message = customer == null ? "Customer not found." : string.Empty;
-                response.StatusCode = customer != null ? 200 : 404;
-                return await Task.FromResult(response);
+                response.StatusCode = customer != null ? (int)HttpStatusCode.OK : (int)HttpStatusCode.NotFound;
+                response.Message = customer == null ? ErrorMessages.NotFound("Customer", id) : string.Empty;
+
+                return response;
             }
             catch (Exception ex)
             {
-                await _logService.LogAsync("Error", $"ServiceException en GetById id={id}", ex.Message, ex);
+                await _logService.LogAsync("Error",
+                    $"ServiceException en GetById id={id}", ex.Message, ex);
+
                 return new GenericResponse<GetCustomerDto?>
                 {
                     Success = false,
-                    Message = $"Error al obtener el customer por id={id}. Detalles: {ex.InnerException?.Message ?? ex.Message}",
+                    Message = ErrorMessages.ErrorWithDetails("obtener", "Customer", ex),
                     Data = null,
                     StatusCode = MapExceptionStatusCode.GetStatusCode(ex)
                 };
             }
-        }              
+        }
 
         public async Task<GenericResponse<(GetCustomerDto? updatedCustomer, bool changed)>> Update(UpdateCustomerDto customer)
         {
             try
             {
                 var response = new GenericResponse<(GetCustomerDto? updatedCustomer, bool changed)>();
-                // Obtener el registro existente de forma asíncrona
+
                 var entity = await _customerRepository.GetById(customer.CustomerId);
+
                 if (entity == null)
                 {
-                    response.Data = (null, false);
-                    response.Success = false;
-                    response.Message = "Customer not found.";
-                    response.StatusCode = 404;
+                    await _logService.LogAsync("Warning",
+                        $"Update no realizado: CustomerId={customer.CustomerId}", null, null);
 
-                    await _logService.LogAsync("Warning", $"Update no realizado: CustomerId={customer.CustomerId} no encontrado", null, null);
-                    return response;
+                    return new GenericResponse<(GetCustomerDto?, bool)>
+                    {
+                        Data = (null, false),
+                        Success = false,
+                        Message = ErrorMessages.NotFound("Customer", customer.CustomerId),
+                        StatusCode = (int)HttpStatusCode.NotFound
+                    };
                 }
 
                 _mapper.Map(customer, entity);
                 entity.UpdatedAt = DateHelper.ToLocalTime(DateTime.UtcNow);
                 entity.UpdatedBy = "System";
 
-                var updatedResult = await _customerRepository.Update(entity);
-                var (updatedEntity, changed) = updatedResult;
+                var (updatedEntity, changed) = await _customerRepository.Update(entity);
 
                 if (changed)
                 {
                     response.Data = (_mapper.Map<GetCustomerDto>(updatedEntity), true);
                     response.Success = true;
-                    response.StatusCode = 200;
-                    response.Message = "Actualización realizada correctamente.";
+                    response.StatusCode = (int)HttpStatusCode.OK;
+                    response.Message = ErrorMessages.Updated("Customer");
                 }
                 else
                 {
+                    await _logService.LogAsync("Warning",
+                        $"Update sin cambios: CustomerId={customer.CustomerId}", null, null);
+
                     response.Data = (null, false);
                     response.Success = false;
-                    response.StatusCode = 404;
-                    response.Message = "No se realizaron cambios.";
-
-                    await _logService.LogAsync("Warning", $"Update no realizado: CustomerId={customer.CustomerId} sin cambios", null, null);
+                    response.StatusCode = (int)HttpStatusCode.NotFound;
+                    response.Message = ErrorMessages.NoChanges("Customer");
                 }
 
                 return response;
             }
             catch (Exception ex)
             {
-                await _logService.LogAsync("Error", $"ServiceException en Update CustomerId={customer.CustomerId}", ex.Message, ex);
-                return new GenericResponse<(GetCustomerDto? updatedCustomer, bool changed)>
+                await _logService.LogAsync("Error",
+                    $"ServiceException en Update CustomerId={customer.CustomerId}", ex.Message, ex);
+
+                return new GenericResponse<(GetCustomerDto?, bool)>
                 {
                     Success = false,
-                    Message = $"Error al actualizar el customer: {ex.InnerException?.Message ?? ex.Message}",
+                    Message = ErrorMessages.ErrorWithDetails("actualizar", "Customer", ex),
                     Data = (null, false),
                     StatusCode = MapExceptionStatusCode.GetStatusCode(ex)
                 };

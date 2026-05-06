@@ -114,6 +114,13 @@ builder.Services.AddDbContext<JujuTestContext>(options =>
 
 var app = builder.Build();
 
+app.MapGet("/", () => Results.Ok(new
+{
+    message = "API funcionando",
+    documentation = "/swagger",
+    version = "v1"
+}));
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

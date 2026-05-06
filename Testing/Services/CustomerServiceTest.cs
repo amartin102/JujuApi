@@ -1,5 +1,8 @@
-﻿using Application.Dtos.Post;
+﻿using Application.Common.GenericResponse;
+using Application.Common.Messages;
+using Application.Dtos.Customer;
 using Application.Services;
+using Application.Services.Interface;
 using AutoMapper;
 using Domain.Entities;
 using Moq;
@@ -9,126 +12,235 @@ using Xunit;
 
 namespace Testing.Services
 {
-    public  class CustomerServiceTest
+    public class CustomerServiceTest
     {
-        private readonly Mock<IPostRepository> _postRepositoryMock;
+        private readonly Mock<ICustomerRepository> _customerRepositoryMock;
         private readonly Mock<IMapper> _mapperMock;
         private readonly Mock<ILogInterface> _logServiceMock;
-        private readonly Mock<ICustomerRepository> _customerRepositoryMock;
-        private readonly PostService _postService;
+        private readonly Mock<IPostService> _postServiceMock;
+
+        private readonly CustomerService _customerService;
 
         public CustomerServiceTest()
         {
-            _postRepositoryMock = new Mock<IPostRepository>();
+            _customerRepositoryMock = new Mock<ICustomerRepository>();
             _mapperMock = new Mock<IMapper>();
             _logServiceMock = new Mock<ILogInterface>();
-            _customerRepositoryMock = new Mock<ICustomerRepository>();
+            _postServiceMock = new Mock<IPostService>();
 
-            _postService = new PostService(
-                _postRepositoryMock.Object,
+            _customerService = new CustomerService(
+                _customerRepositoryMock.Object,
                 _mapperMock.Object,
                 _logServiceMock.Object,
-                _customerRepositoryMock.Object
+                _postServiceMock.Object
             );
         }
 
         [Fact]
-        public async Task Create_ShouldReturn201_WhenCustomerExists()
+        public async Task Create_ShouldReturn409_WhenCustomerAlreadyExists()
         {
-            var dto = new CreatePostDto { CustomerId = 1, Body = "Test" };
-            _customerRepositoryMock.Setup(r => r.GetById(1)).ReturnsAsync(new CustomerEntity { State = true });
-            _mapperMock.Setup(m => m.Map<PostEntity>(dto)).Returns(new PostEntity());
-            _postRepositoryMock.Setup(r => r.Create(It.IsAny<PostEntity>())).ReturnsAsync(new PostEntity());
+            var dto = new CreateCustomerDto { Name = "Juan" };
 
-            var result = await _postService.Create(dto);
+            _customerRepositoryMock
+                .Setup(r => r.GetByName(dto.Name))
+                .ReturnsAsync(new CustomerEntity());
+
+            var result = await _customerService.Create(dto);
+
+            Assert.False(result.Success);
+            Assert.Equal(409, result.StatusCode);
+            Assert.Equal(ErrorMessages.AlreadyExists("Customer", "nombre"), result.Message);
+        }
+
+        [Fact]
+        public async Task Create_ShouldReturn201_WhenCustomerCreated()
+        {
+            var dto = new CreateCustomerDto { Name = "Juan" };
+
+            _customerRepositoryMock
+                .Setup(r => r.GetByName(dto.Name))
+                .ReturnsAsync((CustomerEntity)null);
+
+            _mapperMock
+                .Setup(m => m.Map<CustomerEntity>(dto))
+                .Returns(new CustomerEntity());
+
+            var createdEntity = new CustomerEntity();
+
+            _customerRepositoryMock
+                .Setup(r => r.Create(It.IsAny<CustomerEntity>()))
+                .ReturnsAsync(createdEntity);
+
+            _mapperMock
+                .Setup(m => m.Map<GetCustomerDto>(createdEntity))
+                .Returns(new GetCustomerDto());
+
+            var result = await _customerService.Create(dto);
 
             Assert.True(result.Success);
             Assert.Equal(201, result.StatusCode);
+            Assert.Equal(ErrorMessages.Created("Customer"), result.Message);
         }
 
         [Fact]
-        public async Task Create_ShouldReturn404_WhenCustomerDoesNotExist()
-        {           
-            var dto = new CreatePostDto { CustomerId = 99 };
-            _customerRepositoryMock.Setup(r => r.GetById(99)).ReturnsAsync((CustomerEntity)null);
-                       
-            var result = await _postService.Create(dto);
-                      
+        public async Task Delete_ShouldReturn404_WhenCustomerDoesNotExist()
+        {
+            int id = 1;
+
+            _customerRepositoryMock
+                .Setup(r => r.GetById(id))
+                .ReturnsAsync((CustomerEntity)null);
+
+            var result = await _customerService.Delete(id);
+
             Assert.False(result.Success);
             Assert.Equal(404, result.StatusCode);
-            Assert.Contains("does not exist", result.Message);
+            Assert.Equal(ErrorMessages.NotFound("Customer", id), result.Message);
         }
 
         [Fact]
-        public async Task Delete_ShouldReturn204_WhenPostDeleted()
+        public async Task Delete_ShouldReturn404_WhenDeletePostsFails()
         {
-            _postRepositoryMock.Setup(r => r.Delete(1)).Returns(Task.FromResult(true));
+            int id = 1;
 
-            var result = await _postService.Delete(1);
+            _customerRepositoryMock
+                .Setup(r => r.GetById(id))
+                .ReturnsAsync(new CustomerEntity());
 
+            _postServiceMock
+                .Setup(s => s.DeleteAll(id))
+                .ReturnsAsync(new GenericResponse<bool> { Success = false });
+
+            var result = await _customerService.Delete(id);
+
+            Assert.False(result.Success);
+            Assert.Equal(404, result.StatusCode);
+            Assert.Equal(
+                ErrorMessages.DeleteFailedByParent("Posts", "Customer", id),
+                result.Message);
+        }
+
+        [Fact]
+        public async Task Delete_ShouldReturn204_WhenCustomerDeleted()
+        {
+            int id = 1;
+
+            _customerRepositoryMock
+                .Setup(r => r.GetById(id))
+                .ReturnsAsync(new CustomerEntity());
+
+            _postServiceMock
+                .Setup(s => s.DeleteAll(id))
+                .ReturnsAsync(new GenericResponse<bool> { Success = true });
+
+            _customerRepositoryMock
+                .Setup(r => r.Delete(id))
+                .ReturnsAsync(true);
+
+            var result = await _customerService.Delete(id);
+
+            Assert.True(result.Success);
             Assert.True(result.Data);
             Assert.Equal(204, result.StatusCode);
-        }
-
-        [Fact]
-        public async Task Delete_ShouldReturn404_WhenPostNotFound()
-        {
-            _postRepositoryMock.Setup(r => r.Delete(1)).Returns(Task.FromResult(false));
-
-            var result = await _postService.Delete(1);
-
-            Assert.False(result.Success);
-            Assert.Equal(404, result.StatusCode);
-        }
-
-        [Fact]
-        public async Task GetById_ShouldReturnPost_WhenExists()
-        {
-            var entity = new PostEntity { PostId = 1 };
-            _postRepositoryMock.Setup(r => r.GetById(1)).Returns(Task.FromResult(entity));
-            _mapperMock.Setup(m => m.Map<GetPostDto>(entity)).Returns(new GetPostDto { PostId = 1 });
-
-            var result = await _postService.GetById(1);
-
-            Assert.NotNull(result.Data);
-            Assert.Equal(200, result.StatusCode);
+            Assert.Equal(ErrorMessages.Deleted("Customer"), result.Message);
         }
 
         [Fact]
         public async Task GetById_ShouldReturn404_WhenNotExists()
         {
-            _postRepositoryMock.Setup(r => r.GetById(1)).Returns(Task.FromResult((PostEntity)null));
+            int id = 1;
 
-            var result = await _postService.GetById(1);
+            _customerRepositoryMock
+                .Setup(r => r.GetById(id))
+                .ReturnsAsync((CustomerEntity)null);
 
-            Assert.Null(result.Data);
+            var result = await _customerService.GetById(id);
+
+            Assert.False(result.Success);
             Assert.Equal(404, result.StatusCode);
+            Assert.Equal(ErrorMessages.NotFound("Customer", id), result.Message);
         }
 
         [Fact]
-        public async Task Update_ShouldReturnSuccess_WhenPostIsUpdated()
+        public async Task GetById_ShouldReturn200_WhenExists()
         {
-            var dto = new UpdatePostDto { PostId = 1 };
-            var entity = new PostEntity { PostId = 1 };
-            _postRepositoryMock.Setup(r => r.GetById(1)).ReturnsAsync(entity);
-            _postRepositoryMock.Setup(r => r.Update(entity)).ReturnsAsync((entity, true));
-            _mapperMock.Setup(m => m.Map<GetPostDto>(entity)).Returns(new GetPostDto());
+            int id = 1;
+            var entity = new CustomerEntity();
 
-            var result = await _postService.Update(dto);
+            _customerRepositoryMock
+                .Setup(r => r.GetById(id))
+                .ReturnsAsync(entity);
 
-            Assert.True(result.Data.changed);
+            _mapperMock
+                .Setup(m => m.Map<GetCustomerDto>(entity))
+                .Returns(new GetCustomerDto());
+
+            var result = await _customerService.GetById(id);
+
+            Assert.True(result.Success);
             Assert.Equal(200, result.StatusCode);
         }
 
         [Fact]
-        public async Task Update_ShouldReturn404_WhenPostNotFound()
+        public async Task Update_ShouldReturn404_WhenCustomerNotFound()
         {
-            _postRepositoryMock.Setup(r => r.GetById(It.IsAny<int>())).ReturnsAsync((PostEntity)null);
+            var dto = new UpdateCustomerDto { CustomerId = 1 };
 
-            var result = await _postService.Update(new UpdatePostDto { PostId = 1 });
+            _customerRepositoryMock
+                .Setup(r => r.GetById(dto.CustomerId))
+                .ReturnsAsync((CustomerEntity)null);
 
-            Assert.Equal(404, result.StatusCode);
+            var result = await _customerService.Update(dto);
+
             Assert.False(result.Success);
+            Assert.Equal(404, result.StatusCode);
+            Assert.Equal(ErrorMessages.NotFound("Customer", dto.CustomerId), result.Message);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturn200_WhenUpdated()
+        {
+            var dto = new UpdateCustomerDto { CustomerId = 1 };
+            var entity = new CustomerEntity();
+
+            _customerRepositoryMock
+                .Setup(r => r.GetById(dto.CustomerId))
+                .ReturnsAsync(entity);
+
+            _customerRepositoryMock
+                .Setup(r => r.Update(entity))
+                .ReturnsAsync((entity, true));
+
+            _mapperMock
+                .Setup(m => m.Map<GetCustomerDto>(entity))
+                .Returns(new GetCustomerDto());
+
+            var result = await _customerService.Update(dto);
+
+            Assert.True(result.Success);
+            Assert.Equal(200, result.StatusCode);
+            Assert.Equal(ErrorMessages.Updated("Customer"), result.Message);
+        }
+
+        [Fact]
+        public async Task Update_ShouldReturn404_WhenNoChanges()
+        {
+            var dto = new UpdateCustomerDto { CustomerId = 1 };
+            var entity = new CustomerEntity();
+
+            _customerRepositoryMock
+                .Setup(r => r.GetById(dto.CustomerId))
+                .ReturnsAsync(entity);
+
+            _customerRepositoryMock
+                .Setup(r => r.Update(entity))
+                .ReturnsAsync((entity, false));
+
+            var result = await _customerService.Update(dto);
+
+            Assert.False(result.Success);
+            Assert.Equal(404, result.StatusCode);
+            Assert.Equal(ErrorMessages.NoChanges("Customer"), result.Message);
         }
     }
 }

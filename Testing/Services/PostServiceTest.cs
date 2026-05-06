@@ -71,6 +71,11 @@ namespace Testing.Services
         public async Task Delete_ShouldReturn204_WhenPostIsDeleted()
         {
             int id = 1;
+
+            _postRepoMock
+            .Setup(x => x.GetById(id))
+            .ReturnsAsync(new PostEntity());
+
             _postRepoMock.Setup(x => x.Delete(id)).Returns(Task.FromResult(true));
 
             var result = await _service.Delete(id);
