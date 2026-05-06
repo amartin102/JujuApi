@@ -81,7 +81,6 @@ namespace Application.Services
                 {
                     await _logService.LogAsync("Warning", $"DeleteAll posts no realizado: CustomerId={id} no encontrado o sin posts para eliminar", null, null);
 
-                    await _logService.LogAsync("Warning", $"Delete no realizado: CustomerId={id} no encontrado o no eliminado", null, null);
                     response.StatusCode = 404;
                     response.Message = $"Customer con id={id} no encontrado o no eliminado.";
                 }
