@@ -32,7 +32,7 @@ namespace Application.Services
             {
                 var response = new GenericResponse<GetCustomerDto>();
 
-                var validateUser = _customerRepository.GetByName(customerDto.Name.Trim()).Result;
+                var validateUser = await _customerRepository.GetByName(customerDto.Name.Trim());
 
                 if(validateUser != null)
                 {
@@ -75,7 +75,6 @@ namespace Application.Services
             {
                 var response = new GenericResponse<bool>();
 
-               // Delete all posts associated with the customer
                 var deletePostsResult = await _postService.DeleteAll(id);
 
                 if (!deletePostsResult.Success)
@@ -125,7 +124,7 @@ namespace Application.Services
             try
             {
                 var response = new GenericResponse<IQueryable<GetCustomerDto>>();
-                var customers = _customerRepository.GetAll().Result;
+                var customers = await _customerRepository.GetAll();
                 response.Data = customers.Select(c => _mapper.Map<GetCustomerDto>(c)).AsQueryable();
                 response.Success = true;
                 response.StatusCode = 200;
@@ -188,13 +187,11 @@ namespace Application.Services
                     return response;
                 }
 
-                // Mapear los cambios del DTO sobre la entidad existente (preserva CreatedAt/CreatedBy)
                 _mapper.Map(customer, entity);
                 entity.UpdatedAt = DateHelper.ToLocalTime(DateTime.UtcNow);
                 entity.UpdatedBy = "System";
-                // Llamada al repositorio para actualizar (se espera un tuple: (entity, changed))
+
                 var updatedResult = await _customerRepository.Update(entity);
-                // Desestructurar el resultado (compatible con ValueTuple)
                 var (updatedEntity, changed) = updatedResult;
 
                 if (changed)

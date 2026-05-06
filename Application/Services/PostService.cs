@@ -81,7 +81,7 @@ namespace Application.Services
             try
             {
                 var response = new GenericResponse<bool>();
-                var deleted = _postRepository.Delete(id).Result;
+                var deleted = await _postRepository.Delete(id);
                 response.Data = deleted;
                 response.Success = deleted;
 
@@ -151,7 +151,7 @@ namespace Application.Services
             try
             {
                 var response = new GenericResponse<IQueryable<GetPostDto>>();
-                var posts = _postRepository.GetAll().Result;
+                var posts = await _postRepository.GetAll();
                 response.Data = posts.Select(p => _mapper.Map<GetPostDto>(p)).AsQueryable();
                 response.Success = true;
                 response.StatusCode = 200;
@@ -176,7 +176,7 @@ namespace Application.Services
             try
             {
                 var response = new GenericResponse<List<GetPostDto>>();
-                var posts = _postRepository.GetByCustomerId(customerId).Result;
+                var posts = await _postRepository.GetByCustomerId(customerId);
                 response.Data = posts.Select(p => _mapper.Map<GetPostDto>(p)).ToList();
                 response.Success = true;
                 response.StatusCode = 200;
@@ -200,7 +200,7 @@ namespace Application.Services
             try
             {
                 var response = new GenericResponse<GetPostDto?>();
-                var post = _postRepository.GetById(id).Result;
+                var post = await _postRepository.GetById(id);
                 response.Data = post != null ? _mapper.Map<GetPostDto>(post) : null;
                 response.Success = post != null;
                 response.Message = post == null ? "Post not found." : string.Empty;
