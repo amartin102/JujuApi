@@ -280,6 +280,8 @@ namespace Application.Services
                 }
 
                 _mapper.Map(post, entity);
+                entity.Body = _genericMethod.FormatBodyPreview(entity.Body);
+                entity.Category = _genericMethod.GetCategory(entity.Type, entity.Category);
                 entity.UpdatedAt = DateHelper.ToLocalTime(DateTime.UtcNow);
                 entity.UpdatedBy = "System";
 
