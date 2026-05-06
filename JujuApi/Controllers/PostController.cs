@@ -1,11 +1,13 @@
 ﻿using Application.Common.GenericResponse;
 using Application.Dtos.Post;
 using Application.Services.Interface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JujuApi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class PostController : ControllerBase
@@ -30,7 +32,6 @@ namespace JujuApi.Controllers
                 if (posts.StatusCode.HasValue)
                     return StatusCode(posts.StatusCode.Value, posts);
 
-                // Si no hay StatusCode y no fue success, asumir NotFound
                 return NotFound(posts);
             }
             catch (Exception ex)
