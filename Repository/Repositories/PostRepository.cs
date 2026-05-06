@@ -37,7 +37,34 @@ namespace Repository.Repositories
         public async Task<bool> Delete(int id)
         {
            return await DeleteAsync(id);
-        }              
+        }
+                
+        public async Task<bool> DeleteAllAsync(int customerId)
+        {
+            var propertyActive = typeof(PostEntity).GetProperty("State");
+            var propertyUpdate = typeof(PostEntity).GetProperty("UpdatedAt");
+            var propertyUpdatedBy = typeof(PostEntity).GetProperty("UpdatedBy");
+
+            if (propertyActive != null)
+            {
+                var entities = await _context.Set<PostEntity>()
+                    .Where(e => EF.Property<int>(e, "CustomerId") == customerId)
+                    .ToListAsync();
+
+                foreach (var e in entities)
+                {
+                    propertyActive.SetValue(e, false);
+                    propertyUpdate?.SetValue(e, DateTime.Now);
+                    propertyUpdatedBy?.SetValue(e, "System");
+
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
+        }
 
         public async Task<PostEntity?> GetById(int id)
         {

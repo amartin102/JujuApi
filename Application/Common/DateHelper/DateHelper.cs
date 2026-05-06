@@ -12,8 +12,8 @@ namespace Application.Common.DateHelper
         private static readonly TimeZoneInfo ColombiaTimeZone =
             TimeZoneInfo.FindSystemTimeZoneById(
                 RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "SA Pacific Standard Time"   // Windows
-                    : "America/Bogota"            // Linux/Mac
+                    ? "SA Pacific Standard Time"  
+                    : "America/Bogota"            
             );
 
         public static DateTime ToLocalTime(DateTime dateTime)

@@ -15,5 +15,7 @@ namespace Repository.Interface
         Task<(PostEntity? updatedPost, bool changed)> Update(PostEntity post);
 
         Task<bool> Delete(int id);
+
+        Task<bool> DeleteAllAsync(int customerId);
     }
 }

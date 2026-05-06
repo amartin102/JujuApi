@@ -1,5 +1,5 @@
 ﻿using Application.Common.GenericResponse;
-using Application.Dtos;
+using Application.Dtos.Post;
 using Application.Services.Interface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

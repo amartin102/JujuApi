@@ -1,5 +1,5 @@
 ﻿using Application.Common.GenericResponse;
-using Application.Dtos;
+using Application.Dtos.Post;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,5 +20,7 @@ namespace Application.Services.Interface
         Task<GenericResponse<(GetPostDto? updatedPost, bool changed)>> Update(UpdatePostDto post);
 
         Task<GenericResponse<bool>> Delete(int id);
+
+        Task<GenericResponse<bool>> DeleteAll(int customerId);
     }
 }

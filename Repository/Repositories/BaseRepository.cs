@@ -57,26 +57,6 @@ namespace Repository.Repositories
 
             }
 
-            //Inactivar todos los registros relacionados de una entidad
-            public async Task<bool> DeleteAllAsync(int id)
-            {                
-                    var propertyActive = typeof(TEntity).GetProperty("State");
-
-                    if (propertyActive != null)
-                    {
-                        var entities = await _context.Set<TEntity>()
-                            .Where(e => EF.Property<int>(e, "CustomerId") == id)
-                            .ToListAsync();
-
-                        entities.ForEach(e => propertyActive.SetValue(e, false));
-
-                        await _context.SaveChangesAsync();
-                        return true;
-                    }
-
-                    return false;                
-            }
-
             public Task<IQueryable<TEntity>> GetAllAsync(Func<IQueryable<TEntity>, IQueryable<TEntity>>? includeFunc = null)
             {
                     IQueryable<TEntity> query = _context.Set<TEntity>().AsNoTracking();
@@ -90,32 +70,13 @@ namespace Repository.Repositories
 
             }
 
-            /*
-            public async Task<TEntity> GetByIdAsync(int id, Func<IQueryable<TEntity>, IQueryable<TEntity>> includeFunc = null)
-            {
-                try
-                {
-                    IQueryable<TEntity> query = _context.Set<TEntity>();
-
-                    if (includeFunc != null)
-                    {
-                        query = includeFunc(query);
-                    }
-
-                    return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "CustomerId") == id);// Carga los detalles relacionados
-
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
-            }
-            
-             */
-
             public async Task<TEntity?> GetByIdAsync(int id)
             {
                 var result = await _context.Set<TEntity>().FindAsync(id);
+
+                if (result == null)
+                    return null;
+               
                 return result;
             }
 

@@ -4,9 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.Common.GenericResponse
+namespace Application.Common
 {
-    internal class FromServiceResponse
+    public enum TypeCategory
     {
+        Farandula = 1,
+        Politica = 2,
+        Futbol = 3
     }
 }

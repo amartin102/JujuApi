@@ -1,21 +1,17 @@
-﻿using Application.Dtos;
+﻿using Application.Dtos.Customer;
+using Application.Dtos.Post;
 using AutoMapper;
 using Domain.Entities;
 
 namespace Application.Common.Mappings
 {
-    public class PostProfile : Profile
+    public class CustomerProfile : Profile
     {
-        public PostProfile()
+        public CustomerProfile()
         {          
+            CreateMap<CreateCustomerDto, CustomerEntity>().ReverseMap();
 
-            CreateMap<CreatePostDto, PostEntity>().ReverseMap();
-
-            CreateMap<PostEntity, GetPostDto>()
-                .ForMember(dest => dest.CustomerName,
-                           opt => opt.MapFrom(src => src.Customer != null ? src.Customer.Name : null));
-
-            CreateMap<UpdatePostDto, PostEntity>()
+            CreateMap<UpdateCustomerDto, CustomerEntity>()
                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())
                .ReverseMap();
