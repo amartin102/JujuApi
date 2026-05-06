@@ -15,7 +15,7 @@ namespace JujuApi.Controllers
             _jwt = jwt;
         }
 
-        [HttpPost]
+        [HttpGet]
         [Route("GenerarToken")]
         public async Task<IActionResult> GenerarToken()
         {
