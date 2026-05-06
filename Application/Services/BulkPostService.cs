@@ -24,6 +24,12 @@ namespace Application.Services
             _genericMethod = new GenericMethod();
         }
 
+        /// <summary>
+        /// Inserta en bloque una lista de posts en la base de datos.
+        /// Valida los datos antes de la inserción y aplica las reglas de negocio para formatear el body y asignar la categoría.
+        /// </summary>
+        /// <param name="posts">Lista de posts a insertar.</param>
+        /// <returns>Tarea que representa la operación asincrónica.</returns>
         public async Task BulkInsertAsync(List<CreatePostDto> posts)
         {
             _genericMethod.Validate(posts);

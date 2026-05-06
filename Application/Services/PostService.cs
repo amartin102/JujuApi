@@ -33,6 +33,12 @@ namespace Application.Services
             _genericMethod = new GenericMethod();
         }
 
+        /// <summary>
+        /// Crea un nuevo post. Valida que el customer exista antes de crear el post.
+        /// Aplica las reglas de negocio para formatear el body, asignar la categoría y agrega las fechas auditoría y usuario.
+        /// </summary>
+        /// <param name="postDto">Datos del post a crear.</param>
+        /// <returns>GenericResponse<GetPostDto></returns>
         public async Task<GenericResponse<GetPostDto>> Create(CreatePostDto postDto)
         {
             try
@@ -75,7 +81,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Elimina un post por su ID.
+        /// </summary>
+        /// <param name="id">ID del post a eliminar.</param>
+        /// <returns>GenericResponse<bool></returns>
         public async Task<GenericResponse<bool>> Delete(int id)
         {
             try
@@ -129,7 +140,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Elimina todos los posts de un customer por su ID.
+        /// </summary>
+        /// <param name="customerId">ID del customer cuyos posts se eliminarán.</param>
+        /// <returns>GenericResponse<bool></returns>
         public async Task<GenericResponse<bool>> DeleteAll(int customerId)
         {
             try
@@ -170,7 +186,11 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Obtiene todos los posts.
+        /// </summary>
+        /// <returns>GenericResponse<IQueryable<GetPostDto>></returns>
         public async Task<GenericResponse<IQueryable<GetPostDto>>> GetAll()
         {
             try
@@ -198,7 +218,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Obtiene todos los posts de un customer por su ID.
+        /// </summary>
+        /// <param name="customerId">ID del customer cuyos posts se obtendrán.</param>
+        /// <returns>GenericResponse<List<GetPostDto>></returns>
         public async Task<GenericResponse<List<GetPostDto>>> GetByCustomerId(int customerId)
         {
             try
@@ -227,7 +252,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Obtiene un post por su ID.
+        /// </summary>
+        /// <param name="id">ID del post a obtener.</param>
+        /// <returns>GenericResponse<GetPostDto?></returns>
         public async Task<GenericResponse<GetPostDto?>> GetById(int id)
         {
             try
@@ -257,6 +287,12 @@ namespace Application.Services
             }
         }
 
+        /// <summary>
+        /// Actualiza un post existente.
+        /// Aplica las reglas de negocio para formatear el body, asignar la categoría y actualizar las fechas auditoría y usuario.
+        /// </summary>
+        /// <param name="post">Datos del post a actualizar.</param>
+        /// <returns>GenericResponse<(GetPostDto? updatedPost, bool changed)></returns>
         public async Task<GenericResponse<(GetPostDto? updatedPost, bool changed)>> Update(UpdatePostDto post)
         {
             try
@@ -322,7 +358,7 @@ namespace Application.Services
             }
         }
 
-        // Método privado para validar si el cliente existe antes de crear un post
+        // Método privado para validar si el customer existe antes de crear un post
         private async Task<bool> ValidateCustomerExists(int customerId)
         {
             var customerResponse = await _customerRepository.GetById(customerId);

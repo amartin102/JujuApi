@@ -27,7 +27,12 @@ namespace Application.Services
             _logService = logService;
             _postService = postService; 
         }
-
+        /// <summary>
+        /// Crea un nuevo customer. Valida que el nombre no exista previamente. 
+        /// Si el nombre ya existe, retorna un conflicto. Si ocurre un error, retorna un mensaje detallado del error.
+        /// </summary>
+        /// <param name="customerDto">Datos del customer a crear.</param>
+        /// <returns>GenericResponse<GetCustomerDto></returns>
         public async Task<GenericResponse<GetCustomerDto>> Create(CreateCustomerDto customerDto)
         {
             try
@@ -70,7 +75,11 @@ namespace Application.Services
                 };
             }
         }
-
+        /// <summary>
+        /// Elimina un customer por su ID.
+        /// </summary>
+        /// <param name="id">ID del customer a eliminar.</param>
+        /// <returns>GenericResponse<bool></returns>
         public async Task<GenericResponse<bool>> Delete(int id)
         {
             try
@@ -136,7 +145,11 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Obtiene todos los customers.
+        /// </summary>
+        /// <returns>GenericResponse<IQueryable<GetCustomerDto>></returns>
         public async Task<GenericResponse<IQueryable<GetCustomerDto>>> GetAll()
         {
             try
@@ -164,7 +177,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Obtiene un customer por su ID.
+        /// </summary>
+        /// <param name="id">ID del customer a obtener.</param>
+        /// <returns>GenericResponse<GetCustomerDto?></returns>
         public async Task<GenericResponse<GetCustomerDto?>> GetById(int id)
         {
             try
@@ -193,7 +211,12 @@ namespace Application.Services
                 };
             }
         }
-
+        
+        /// <summary>
+        /// Actualiza un customer existente.
+        /// </summary>
+        /// <param name="customer">Datos del customer a actualizar.</param>
+        /// <returns>GenericResponse<(GetCustomerDto? updatedCustomer, bool changed)></returns>
         public async Task<GenericResponse<(GetCustomerDto? updatedCustomer, bool changed)>> Update(UpdateCustomerDto customer)
         {
             try
